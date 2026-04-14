@@ -1,78 +1,50 @@
-<div align="center">
+# Car Object Detection Pipeline
 
-# 🚗 Car Object Detection Pipeline
-**Featuring ResNet50 Backbone & GIoU Bounding Box Regression**
+A deep learning project focused on detecting cars in images using a Convolutional Neural Network (ResNet50). The project implements a custom bounded-box regression head and compares multiple stochastic optimization algorithms (Adam, SGD, RMSprop, Adagrad) to maximize validation accuracy.
 
-[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB.svg?style=flat&logo=python&logoColor=white)]()
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.10%2B-FF6F00?style=flat&logo=tensorflow)]()
-[![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=flat&logo=Keras&logoColor=white)]()
-[![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-F37626.svg?style=flat&logo=Jupyter&logoColor=white)]()
+## Tech Stack
 
-A comprehensive deep learning project focusing on bridging theoretical classification networks (ResNet50) into fully functional spatial object detection architectures. 
+| Component | Technology |
+| --- | --- |
+| **Language** | Python 3.11 |
+| **Deep Learning Framework** | TensorFlow & Keras |
+| **CNN Backbone** | ResNet50 (ImageNet weights) |
+| **Data Processing** | Pandas, NumPy |
+| **Computer Vision** | OpenCV (cv2) |
+| **Environment** | Jupyter Notebooks |
 
-</div>
+## Key Implementations
 
----
+This project resolves two primary challenges with standard bounding box regression applied to raw computer vision datasets:
 
-## 📌 Problem Statement Overview
-The project tackles the detection of cars across varying multi-view datasets sourced from Kaggle. By utilizing a **ResNet50** Convolutional Neural Network, the primary objectives are to:
-1. Accurately draw regressive bounding boxes around automobiles in unseen data.
-2. Formulate and construct comparative baseline outputs for various stochastic optimization algorithms (**Adam, SGD, RMSprop, Adagrad**) to determine optimal gradient convergence and predictive accuracy.
+1. **Multi-Target Resolution:** The original Kaggle dataset contained multiple bounding box coordinates per image (e.g., an image with three cars had three rows in the CSV). Training a basic continuous-value regression model on conflicting targets causes geometric decay. This was resolved by building a Pandas pipeline that isolates and extracts only the largest bounding box area per image as the primary target.
+2. **GIoU Loss Function:** Standard Mean Squared Error (MSE) treats bounding box coordinates (`xmin, ymin, xmax, ymax`) as independent variables rather than spatial boundaries. This project implements a custom **Generalized Intersection over Union (GIoU)** loss metric, which forces the neural network to mathematically overlap the geometric area of the ground truth.
 
----
+## Setup Instructions
 
-## 🔬 Core Technical Contributions & Solutions
+TensorFlow strictly requires Python 3.11 limits on Windows environments.
 
-When implementing object detection using simple continuous-value regression, several major mathematical and data-based roadblocks inherently manifest. This project actively mitigates them through the following features:
-
-### 1. The Multi-Target Anomaly (Data Generation)
-**The Problem:** The original CSV contains multiple bounding boxes for the same image when there are multiple cars. Standard regression models cannot handle conflicting outputs mapped to the exact same input tensor; doing so produces a corrupted "average" tracking box.
-**The Solution:** An ETL pipeline was built in Pandas to mathematically calculate bounding box areas, forcing the model to strictly isolate and target the single **largest bounded area** (the most prominent vehicle) per layout.
-
-### 2. Geometric Mapping via Generalized Intersection over Union (GIoU) 
-**The Problem:** Standard regression loss metrics, like Mean Squared Error (MSE), interpret `[xmin, ymin, xmax, ymax]` coordinates independently as scalar numbers, failing entirely to comprehend the spatial alignment and physical geometric boundaries of target objects.
-**The Solution:** A custom **GIoU (Generalized Intersection over Union)** constraint was natively scripted into the model fit loop. GIoU actively evaluates the intersecting area ratios overlaid mathematically against the theoretical enclosing box, maximizing spatial precision.
-
----
-
-## 🛠️ Environment Setup & Installation
-
-*Note: TensorFlow strictly supports up to Python 3.11 on Windows architectures. Please ensure you do not use Python 3.12+.*
-
-**1. Create & Activate a virtual environment (Python 3.11):**
+1. Clone the repository natively and create a 3.11 virtual environment:
 ```powershell
-# Create venv
 py -3.11 -m venv venv
-
-# Activate venv (Windows)
 .\venv\Scripts\Activate.ps1
 ```
 
-**2. Install dependencies & notebook kernels:**
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 pip install notebook ipykernel
 ```
 
----
+## How to Run
 
-## 🚀 Execution Guide (Jupyter Notebook Sequence)
+To present or modify the pipeline, open Jupyter Notebook (`jupyter notebook`) and execute the files sequentially from the `/notebooks` directory.
 
-The entire project runs natively within a progressive, 3-part Jupyter Notebook pipeline. Please execute them sequentially from the `notebooks/` directory.
+### 1. `01_Data_Preparation.ipynb`
+This notebook demonstrates the conflicting multi-target issue. It calculates bounding box areas, extracts the largest prominent car per image, visualizes the result, and exports the clean `cleaned_bounding_boxes.csv` file needed for training.
 
-### 📂 `notebooks/01_Data_Preparation.ipynb`
-* **Purpose:** Handles the data cleaning. Visualizes the conflicting multi-target boxes in red, and outputs the isolated "largest target" box in solid green.
-* **Output:** Generates `data/cleaned_bounding_boxes.csv` required for training.
+### 2. `02_Model_Training.ipynb`
+This handles core pipeline execution. It builds the ResNet50 backbone and the custom Sigmoid density head. It then actively trails and benchmarks the GIoU loss logic spanning four different optimization algorithms (Adam, SGD, RMSprop, Adagrad), outputting the trained models alongside a comparative `matplotlib` chart.
 
-### 📂 `notebooks/02_Model_Training.ipynb`
-* **Purpose:** Freezes a ResNet50 architectural backbone and connects a custom 4-node continuous-value Dense regression head. Compiles iterations of the network using the custom GIoU loss variable across exactly 4 optimizers (Adam, RMSprop, SGD, Adagrad). 
-* **Output:** Saves the trained networks to `/models` and plots `optimizer_comparison.png` benchmarking the validation losses and mean absolute mapping errors.
-
-### 📂 `notebooks/03_Inference.ipynb`
-* **Purpose:** Loads the most optimal trained network architecture (Adam generally converges most accurately). Denormalizes the `[0,1]` float layer arrays into physical image pixel coordinates.
-* **Output:** Visual overlays comparing the **Green Ground Truth Rectangles** versus the **Red Predicted Overlay Rectangles** side-by-side using `matplotlib` and `cv2`.
-
----
-<div align="center">
-  <i>Developed and optimized for Computer Vision Portfolio implementation.</i>
-</div>
+### 3. `03_Inference.ipynb`
+This script loads the most accurate model file determined from step 2 (generally Adam). It denormalizes the predicted `[0,1]` scale tensors back into exact pixel dimensions and draws the target versus predicted bounding boxes over raw unseen images.
